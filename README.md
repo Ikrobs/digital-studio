@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Estúdio Digital
 
 Plataforma de atendimento com IA para estúdio de tatuagem — orquestração
@@ -102,3 +103,6 @@ npm run dev:web
 - Mini-jogos no app
 - Avatar animado de "pensando" no web app
 - Multi-tenant (schema já não tem `tenant_id` — decisão consciente de manter simples até virar produto)
+=======
+# digital-studio
+>>>>>>> origin/main
