@@ -1,0 +1,150 @@
+// Schema do Estúdio Digital — v1 single-tenant
+// Nota: pgvector é habilitado via docker-compose (imagem pgvector/pgvector).
+// A extensão precisa ser criada uma vez: CREATE EXTENSION IF NOT EXISTS vector;
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ChannelType {
+  whatsapp
+  web
+  instagram
+}
+
+enum ConversationStatus {
+  em_andamento
+  aguardando_cliente
+  qualificado
+  perdido
+  convertido
+}
+
+enum LeadTipo {
+  orcamento
+  flash
+  duvida
+}
+
+// Uma pessoa que já conversou com o estúdio, identificada por telefone
+// normalizado (chave de unificação entre canais).
+model Contact {
+  id            String    @id @default(cuid())
+  telefone      String?   @unique
+  nome          String?
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+
+  conversations Conversation[]
+  leads         Lead[]
+  appointments  Appointment[]
+  consentForms  ConsentForm[]
+
+  @@map("contacts")
+}
+
+// Uma conversa contínua, podendo atravessar canais (WhatsApp -> web -> WhatsApp).
+model Conversation {
+  id         String             @id @default(cuid())
+  contactId  String             @map("contact_id")
+  contact    Contact            @relation(fields: [contactId], references: [id])
+  canal      ChannelType
+  status     ConversationStatus @default(em_andamento)
+  // handoff token usado para linkar sessão web <-> conversa, sem exigir login
+  handoffToken String?          @unique @map("handoff_token")
+  criadoEm   DateTime           @default(now()) @map("criado_em")
+  atualizadoEm DateTime         @updatedAt @map("atualizado_em")
+
+  messages   Message[]
+  leads      Lead[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String       @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  autor          String       // "cliente" | "ia" | "artista"
+  conteudo       String
+  criadoEm       DateTime     @default(now()) @map("criado_em")
+
+  @@map("messages")
+}
+
+// O lead_profile estruturado — extraído pela ferramenta update_lead_profile
+// do Orchestrator. Campos ficam soltos (nullable) pois são preenchidos
+// progressivamente, fora de ordem, conforme o cliente fala.
+model Lead {
+  id              String       @id @default(cuid())
+  contactId       String       @map("contact_id")
+  contact         Contact      @relation(fields: [contactId], references: [id])
+  conversationId  String       @map("conversation_id")
+  conversation    Conversation @relation(fields: [conversationId], references: [id])
+
+  tipo            LeadTipo     @default(orcamento)
+
+  ideia           String?
+  localCorpo      String?      @map("local_corpo")
+  tamanho         String?
+  estilo          String?
+  faixaOrcamento  String?      @map("faixa_orcamento")
+  referenciaUrl   String?      @map("referencia_url")
+
+  // score determinístico v1 — soma de sinais de completude/intenção
+  score           Int          @default(0)
+  prioridade      String       @default("normal") // "alta" | "normal" | "baixa"
+
+  criadoEm        DateTime     @default(now()) @map("criado_em")
+  atualizadoEm    DateTime     @updatedAt @map("atualizado_em")
+
+  @@map("leads")
+}
+
+// Acervo do artista — motor de precedentes visuais (busca por similaridade).
+model PortfolioPiece {
+  id           String   @id @default(cuid())
+  titulo       String
+  estilo       String
+  localCorpo   String   @map("local_corpo")
+  imagemUrl    String   @map("imagem_url")
+  // embedding é do tipo `vector` do pgvector — Prisma trata como Unsupported.
+  // Consultas de similaridade (cosine distance) são feitas via SQL raw.
+  embedding    Unsupported("vector(1536)")?
+  criadoEm     DateTime @default(now()) @map("criado_em")
+
+  @@map("portfolio_pieces")
+}
+
+model Appointment {
+  id            String   @id @default(cuid())
+  contactId     String   @map("contact_id")
+  contact       Contact  @relation(fields: [contactId], references: [id])
+  leadId        String?  @map("lead_id")
+  status        String   @default("pendente") // pendente | aprovado | recusado | concluido
+  dataSugerida  DateTime? @map("data_sugerida")
+  observacoes   String?
+  criadoEm      DateTime @default(now()) @map("criado_em")
+
+  @@map("appointments")
+}
+
+// Módulo separado por lidar com dado sensível de saúde (LGPD).
+// Acesso a esta tabela deve ser mais restrito que o restante do schema.
+model ConsentForm {
+  id              String   @id @default(cuid())
+  contactId       String   @map("contact_id")
+  contact         Contact  @relation(fields: [contactId], references: [id])
+  tipo            String   // "anamnese" | "termo_consentimento"
+  respostasJson   Json     @map("respostas_json")
+  assinaturaUrl   String?  @map("assinatura_url")
+  ipAssinatura    String?  @map("ip_assinatura")
+  assinadoEm      DateTime? @map("assinado_em")
+  criadoEm        DateTime @default(now()) @map("criado_em")
+
+  @@map("consent_forms")
+}

@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: estudio-digital-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: estudio
+      POSTGRES_PASSWORD: estudio_dev_local
+      POSTGRES_DB: estudio_digital
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: estudio-digital-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:

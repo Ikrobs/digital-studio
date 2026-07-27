@@ -1,0 +1,17 @@
+{
+  "name": "estudio-digital",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Plataforma de atendimento com IA para estúdio de tatuagem — orquestração omnichannel, qualificação de lead e motor de precedentes visuais.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run prisma:migrate --workspace=apps/api"
+  }
+}
