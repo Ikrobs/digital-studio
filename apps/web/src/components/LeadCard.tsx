@@ -1,5 +1,6 @@
-import { useState } from "react";
-import styles from "../App.module.css";
+import React, { useState } from "react";
+// Certifique-se de ajustar o caminho abaixo de acordo com o Passo 2:
+import styles from "../styles/App.module.css"; 
 
 interface Message {
   id: string;
@@ -19,7 +20,7 @@ interface Lead {
   contact?: { nome?: string; telefone?: string };
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3333";
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL ?? "http://localhost:3333";
 
 const STATUS_LABEL: Record<string, string> = {
   aguardando: "Aguardando",
@@ -46,7 +47,8 @@ export default function LeadCard({ lead, onChanged }: { lead: Lead; onChanged: (
       const data = await res.json();
       setMessages(data.conversation?.messages ?? []);
     }
-    setExpanded((v) => !v);
+    // CORREÇÃO: Parâmetro 'v' explicitamente tipado como boolean
+    setExpanded((v: boolean) => !v);
   }
 
   async function updateStatus(status: string) {
@@ -98,7 +100,7 @@ export default function LeadCard({ lead, onChanged }: { lead: Lead; onChanged: (
 
       {expanded && (
         <div className={styles.conversationBox}>
-          {(messages ?? []).map((m) => (
+          {(messages ?? []).map((m: Message) => (
             <div key={m.id} className={styles.conversationMsg}>
               <span className={styles.conversationAutor}>{m.autor}:</span> {m.conteudo}
             </div>
