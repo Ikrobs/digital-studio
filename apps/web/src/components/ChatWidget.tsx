@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import styles from "./ChatWidget.module.css";
 
 interface ChatMessage {
@@ -6,9 +6,11 @@ interface ChatMessage {
   conteudo: string;
   imagemUrl?: string;
   quickOptions?: string[];
+  isFirstInGroup?: boolean;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3333";
+// Correção do erro da propriedade 'env' no import.meta
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL ?? "http://localhost:3333";
 
 function getSessionPhone(): string {
   const key = "estudio_digital_session_phone";
@@ -35,20 +37,22 @@ function fileToBase64(file: File): Promise<{ base64: string; mediaType: string }
 
 export default function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { autor: "ia", conteudo: "Oi. vamos iniciar seu atendimento" },
+    { autor: "ia", conteudo: "Oi. vamos iniciar seu atendimento", isFirstInGroup: true },
   ]);
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState<{ base64: string; mediaType: string; previewUrl: string } | null>(
     null
   );
   const [loading, setLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  
   const endRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const phone = useRef(getSessionPhone());
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]);
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -58,19 +62,23 @@ export default function ChatWidget() {
     e.target.value = "";
   }
 
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
   async function sendMessage(textoOverride?: string) {
     const texto = (textoOverride ?? input).trim();
     if ((!texto && !pendingImage) || loading) return;
 
     const imagemParaEnviar = pendingImage;
 
-    setMessages((prev) => [
+    // Tipagem explícita adicionada ao estado 'prev'
+    setMessages((prev: ChatMessage[]) => [
       ...prev,
-      { autor: "cliente", conteudo: texto || "(imagem enviada)", imagemUrl: imagemParaEnviar?.previewUrl },
+      { autor: "cliente", conteudo: texto || "(imagem enviada)", imagemUrl: imagemParaEnviar?.previewUrl, isFirstInGroup: true },
     ]);
     setInput("");
     setPendingImage(null);
     setLoading(true);
+    setIsTyping(true);
 
     try {
       const res = await fetch(`${API_BASE}/chat`, {
@@ -84,17 +92,38 @@ export default function ChatWidget() {
         }),
       });
       const data = await res.json();
-      setMessages((prev) => [
-        ...prev,
-        { autor: "ia", conteudo: data.reply, quickOptions: data.quickOptions ?? [] },
-      ]);
+
+      const blocosDeTexto = (data.reply as string)
+        .split(/\n\n+/)
+        .map((bloco: string) => bloco.trim())
+        .filter((bloco: string) => bloco.length > 0);
+
+      setIsTyping(false);
+
+      for (let index = 0; index < blocosDeTexto.length; index++) {
+        setIsTyping(true);
+        await delay(750);
+        setIsTyping(false);
+
+        const novaMensagem: ChatMessage = {
+          autor: "ia",
+          conteudo: blocosDeTexto[index],
+          quickOptions: index === blocosDeTexto.length - 1 ? (data.quickOptions ?? []) : [],
+          isFirstInGroup: index === 0,
+        };
+
+        setMessages((prev: ChatMessage[]) => [...prev, novaMensagem]);
+      }
+
     } catch {
-      setMessages((prev) => [
+      setIsTyping(false);
+      setMessages((prev: ChatMessage[]) => [
         ...prev,
-        { autor: "ia", conteudo: "Deu um problema pra conectar com o servidor. Tenta de novo?" },
+        { autor: "ia", conteudo: "Deu um problema pra conectar com o servidor. Tenta de novo?", isFirstInGroup: true },
       ]);
     } finally {
       setLoading(false);
+      setIsTyping(false);
     }
   }
 
@@ -106,27 +135,31 @@ export default function ChatWidget() {
       <div className={styles.sessionLabel}>Sessão: {phone.current}</div>
 
       <div className={styles.messages}>
-        {messages.map((m, i) => (
-          <div key={i} style={{ alignSelf: m.autor === "cliente" ? "flex-end" : "flex-start", maxWidth: "80%" }}>
-            <div className={`${styles.bubble} ${m.autor === "cliente" ? styles.bubbleCliente : styles.bubbleIa}`}>
-              {m.imagemUrl && <img src={m.imagemUrl} alt="referência enviada" className={styles.thumb} />}
-              {m.conteudo}
-            </div>
-
-            {/* Opções rápidas só aparecem na última mensagem da IA — depois
-                de respondida, a próxima pergunta traz suas próprias opções. */}
-            {m.autor === "ia" && i === lastIndex && !loading && m.quickOptions && m.quickOptions.length > 0 && (
-              <div className={styles.quickReplies}>
-                {m.quickOptions.map((opt) => (
-                  <button key={opt} className={styles.quickChip} onClick={() => sendMessage(opt)}>
-                    {opt}
-                  </button>
-                ))}
+        {messages.map((m: ChatMessage, i: number) => {
+          const isCliente = m.autor === "cliente";
+          return (
+            <div 
+              key={i} 
+              className={`${styles.messageRow} ${isCliente ? styles.rowCliente : styles.rowIa} ${m.isFirstInGroup ? styles.newGroup : ""}`}
+            >
+              <div className={`${styles.bubble} ${isCliente ? styles.bubbleCliente : styles.bubbleIa}`}>
+                {m.imagemUrl && <img src={m.imagemUrl} alt="referência enviada" className={styles.thumb} />}
+                {m.conteudo}
               </div>
-            )}
-          </div>
-        ))}
-        {loading && <div className={styles.typing}>digitando…</div>}
+
+              {m.autor === "ia" && i === lastIndex && !loading && m.quickOptions && m.quickOptions.length > 0 && (
+                <div className={styles.quickReplies}>
+                  {m.quickOptions.map((opt: string) => (
+                    <button key={opt} className={styles.quickChip} onClick={() => sendMessage(opt)}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {isTyping && <div className={styles.typing}>digitando…</div>}
         <div ref={endRef} />
       </div>
 
@@ -159,9 +192,10 @@ export default function ChatWidget() {
         <input
           className={styles.textInput}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
+          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && sendMessage()}
           placeholder="Digite sua mensagem..."
+          disabled={loading}
         />
         <button className={styles.sendBtn} onClick={() => sendMessage()} disabled={loading}>
           Enviar
