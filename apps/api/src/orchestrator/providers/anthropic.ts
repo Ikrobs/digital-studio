@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { updateLeadProfileTool } from "../tools.js";
+import { updateLeadProfileTool, suggestQuickOptionsTool } from "../tools.js";
 import { EXTRACTION_SYSTEM_PROMPT, CONVERSATION_SYSTEM_PROMPT } from "../prompts.js";
 import { camposFaltantes, type LeadProfile } from "../../types/lead.js";
-import type { LLMProvider, HistoryTurn } from "./types.js";
+import type { LLMProvider, HistoryTurn, ImageInput, GenerateReplyResult } from "./types.js";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -12,22 +12,31 @@ const MODEL_CONVERSATION = process.env.MODEL_CONVERSATION ?? "claude-sonnet-5";
 export class AnthropicProvider implements LLMProvider {
   async extractLeadProfile(
     lastUserMessage: string,
-    currentProfile: LeadProfile
+    currentProfile: LeadProfile,
+    image?: ImageInput
   ): Promise<LeadProfile> {
+    const contentBlocks: Anthropic.MessageParam["content"] = [];
+
+    if (image) {
+      contentBlocks.push({
+        type: "image",
+        source: { type: "base64", media_type: image.mediaType as any, data: image.base64 },
+      });
+    }
+    contentBlocks.push({
+      type: "text",
+      text:
+        `Perfil atual do lead: ${JSON.stringify(currentProfile)}\n\n` +
+        `Mensagem do cliente: "${lastUserMessage}"`,
+    });
+
     const response = await anthropic.messages.create({
       model: MODEL_EXTRACTION,
       max_tokens: 512,
       system: EXTRACTION_SYSTEM_PROMPT,
       tools: [updateLeadProfileTool],
       tool_choice: { type: "auto" },
-      messages: [
-        {
-          role: "user",
-          content:
-            `Perfil atual do lead: ${JSON.stringify(currentProfile)}\n\n` +
-            `Mensagem do cliente: "${lastUserMessage}"`,
-        },
-      ],
+      messages: [{ role: "user", content: contentBlocks }],
     });
 
     const toolUse = response.content.find(
@@ -47,7 +56,7 @@ export class AnthropicProvider implements LLMProvider {
     };
   }
 
-  async generateReply(history: HistoryTurn[], profile: LeadProfile): Promise<string> {
+  async generateReply(history: HistoryTurn[], profile: LeadProfile): Promise<GenerateReplyResult> {
     const faltando = camposFaltantes(profile);
     const contextBlock =
       `[CONTEXTO INTERNO — não mostrar ao cliente]\n` +
@@ -59,6 +68,8 @@ export class AnthropicProvider implements LLMProvider {
       model: MODEL_CONVERSATION,
       max_tokens: 700,
       system: CONVERSATION_SYSTEM_PROMPT,
+      tools: [suggestQuickOptionsTool],
+      tool_choice: { type: "auto" },
       messages: [
         ...history.map((turn) => ({ role: turn.role, content: turn.content })),
         { role: "user" as const, content: contextBlock },
@@ -68,7 +79,18 @@ export class AnthropicProvider implements LLMProvider {
     const textBlock = response.content.find(
       (block): block is Anthropic.TextBlock => block.type === "text"
     );
+    const toolUse = response.content.find(
+      (block): block is Anthropic.ToolUseBlock =>
+        block.type === "tool_use" && block.name === "suggest_quick_options"
+    );
 
-    return textBlock?.text ?? "Desculpa, tive um problema para responder agora — pode repetir?";
+    const quickOptions = Array.isArray((toolUse?.input as any)?.opcoes)
+      ? ((toolUse!.input as any).opcoes as string[])
+      : [];
+
+    return {
+      reply: textBlock?.text ?? "Desculpa, tive um problema para responder agora — pode repetir?",
+      quickOptions,
+    };
   }
 }

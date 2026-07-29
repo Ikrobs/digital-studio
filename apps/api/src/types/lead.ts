@@ -2,6 +2,7 @@
 // via extração livre de linguagem natural (não árvore de estados fixa).
 
 export interface LeadProfile {
+  nome?: string | null;
   tipo: "orcamento" | "flash" | "duvida";
   ideia?: string | null;
   localCorpo?: string | null;
@@ -11,10 +12,10 @@ export interface LeadProfile {
   referenciaUrl?: string | null;
 }
 
-// Campos obrigatórios para considerar um lead de orçamento "qualificado".
-// Usado pelo checklist server-side que injeta o que falta de volta no
-// contexto do modelo, sem expor isso como formulário ao cliente.
+// Ordem importa: "nome" vem primeiro porque o atendente deve perguntar como
+// chamar a pessoa antes de aprofundar no projeto.
 export const REQUIRED_FIELDS_ORCAMENTO: (keyof LeadProfile)[] = [
+  "nome",
   "ideia",
   "localCorpo",
   "tamanho",

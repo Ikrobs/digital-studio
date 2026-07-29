@@ -1,20 +1,15 @@
 import OpenAI from "openai";
 import { EXTRACTION_SYSTEM_PROMPT, CONVERSATION_SYSTEM_PROMPT } from "../prompts.js";
 import { camposFaltantes, type LeadProfile } from "../../types/lead.js";
-import type { LLMProvider, HistoryTurn } from "./types.js";
+import type { LLMProvider, HistoryTurn, ImageInput, GenerateReplyResult } from "./types.js";
 
-// Aponta para Groq (https://api.groq.com/openai/v1) ou OpenRouter
-// (https://openrouter.ai/api/v1) via variável de ambiente — ambos seguem
-// o formato de chamada da OpenAI, incluindo tool/function calling.
 const client = new OpenAI({
   apiKey: process.env.FREE_PROVIDER_API_KEY,
   baseURL: process.env.FREE_PROVIDER_BASE_URL,
 });
 
-const MODEL_FREE = process.env.FREE_PROVIDER_MODEL ?? "llama-3.3-70b-versatile";
+const MODEL_FREE = process.env.FREE_PROVIDER_MODEL ?? "openrouter/free";
 
-// Mesmo schema do update_lead_profile, só que no formato de "function"
-// esperado pela API da OpenAI (e por extensão, Groq/OpenRouter).
 const updateLeadProfileFunction: OpenAI.Chat.Completions.ChatCompletionTool = {
   type: "function",
   function: {
@@ -25,6 +20,7 @@ const updateLeadProfileFunction: OpenAI.Chat.Completions.ChatCompletionTool = {
     parameters: {
       type: "object",
       properties: {
+        nome: { type: "string" },
         ideia: { type: "string" },
         localCorpo: { type: "string" },
         tamanho: { type: "string" },
@@ -35,49 +31,74 @@ const updateLeadProfileFunction: OpenAI.Chat.Completions.ChatCompletionTool = {
   },
 };
 
+const suggestQuickOptionsFunction: OpenAI.Chat.Completions.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "suggest_quick_options",
+    description:
+      "Sugira de 2 a 5 opções curtas de resposta quando a pergunta feita " +
+      "comportar um conjunto pequeno de respostas prováveis.",
+    parameters: {
+      type: "object",
+      properties: {
+        opcoes: { type: "array", items: { type: "string" } },
+      },
+      required: ["opcoes"],
+    },
+  },
+};
+
 export class OpenAICompatibleProvider implements LLMProvider {
   async extractLeadProfile(
     lastUserMessage: string,
-    currentProfile: LeadProfile
+    currentProfile: LeadProfile,
+    image?: ImageInput
   ): Promise<LeadProfile> {
-    const response = await client.chat.completions.create({
-      model: MODEL_FREE,
-      messages: [
-        { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content:
-            `Perfil atual do lead: ${JSON.stringify(currentProfile)}\n\n` +
-            `Mensagem do cliente: "${lastUserMessage}"`,
-        },
-      ],
-      tools: [updateLeadProfileFunction],
-      tool_choice: "auto",
-    });
-
-    const toolCall = response.choices[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== "update_lead_profile") {
-      return currentProfile;
-    }
-
-    let extracted: Partial<LeadProfile> = {};
     try {
-      extracted = JSON.parse(toolCall.function.arguments);
+      const userContent: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [];
+      if (image) {
+        userContent.push({
+          type: "image_url",
+          image_url: { url: `data:${image.mediaType};base64,${image.base64}` },
+        });
+      }
+      userContent.push({
+        type: "text",
+        text:
+          `Perfil atual do lead: ${JSON.stringify(currentProfile)}\n\n` +
+          `Mensagem do cliente: "${lastUserMessage}"`,
+      });
+
+      const response = await client.chat.completions.create({
+        model: MODEL_FREE,
+        messages: [
+          { role: "system", content: EXTRACTION_SYSTEM_PROMPT },
+          { role: "user", content: userContent },
+        ],
+        tools: [updateLeadProfileFunction],
+        tool_choice: "auto",
+      });
+
+      const toolCall = response.choices[0]?.message?.tool_calls?.[0];
+      if (!toolCall || toolCall.function.name !== "update_lead_profile") {
+        return currentProfile;
+      }
+
+      const extracted: Partial<LeadProfile> = JSON.parse(toolCall.function.arguments);
+      return {
+        ...currentProfile,
+        ...Object.fromEntries(
+          Object.entries(extracted).filter(([, v]) => v !== undefined && v !== "")
+        ),
+      };
     } catch {
-      // modelo aberto às vezes devolve JSON malformado — falha graciosamente,
-      // mantendo o perfil como estava em vez de derrubar a conversa.
+      // Modelo aberto pode falhar em imagem, JSON malformado, etc.
+      // Falha graciosamente — mantém o perfil como estava.
       return currentProfile;
     }
-
-    return {
-      ...currentProfile,
-      ...Object.fromEntries(
-        Object.entries(extracted).filter(([, v]) => v !== undefined && v !== "")
-      ),
-    };
   }
 
-  async generateReply(history: HistoryTurn[], profile: LeadProfile): Promise<string> {
+  async generateReply(history: HistoryTurn[], profile: LeadProfile): Promise<GenerateReplyResult> {
     const faltando = camposFaltantes(profile);
     const contextBlock =
       `[CONTEXTO INTERNO — não mostrar ao cliente]\n` +
@@ -92,11 +113,25 @@ export class OpenAICompatibleProvider implements LLMProvider {
         ...history.map((turn) => ({ role: turn.role, content: turn.content })),
         { role: "user", content: contextBlock },
       ],
+      tools: [suggestQuickOptionsFunction],
+      tool_choice: "auto",
     });
 
-    return (
-      response.choices[0]?.message?.content ??
-      "Desculpa, tive um problema para responder agora — pode repetir?"
-    );
+    const message = response.choices[0]?.message;
+    const reply =
+      message?.content ?? "Desculpa, tive um problema para responder agora — pode repetir?";
+
+    let quickOptions: string[] = [];
+    const toolCall = message?.tool_calls?.find((t) => t.function.name === "suggest_quick_options");
+    if (toolCall) {
+      try {
+        const parsed = JSON.parse(toolCall.function.arguments);
+        if (Array.isArray(parsed.opcoes)) quickOptions = parsed.opcoes;
+      } catch {
+        // opções rápidas são um bônus, não crítico — ignora silenciosamente
+      }
+    }
+
+    return { reply, quickOptions };
   }
 }

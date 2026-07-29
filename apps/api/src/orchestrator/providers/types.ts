@@ -5,11 +5,22 @@ export interface HistoryTurn {
   content: string;
 }
 
+export interface ImageInput {
+  base64: string;
+  mediaType: string; // ex: "image/jpeg", "image/png"
+}
+
+export interface GenerateReplyResult {
+  reply: string;
+  quickOptions: string[];
+}
+
 export interface LLMProvider {
   extractLeadProfile(
     lastUserMessage: string,
-    currentProfile: LeadProfile
+    currentProfile: LeadProfile,
+    image?: ImageInput
   ): Promise<LeadProfile>;
 
-  generateReply(history: HistoryTurn[], profile: LeadProfile): Promise<string>;
+  generateReply(history: HistoryTurn[], profile: LeadProfile): Promise<GenerateReplyResult>;
 }

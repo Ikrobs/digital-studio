@@ -1,0 +1,62 @@
+/* ============================================================
+   DESIGN TOKENS — Estúdio Digital
+   Fonte única de verdade para cor, tipografia e espaçamento.
+   Trocar tema = editar este arquivo, nunca os componentes.
+   ============================================================ */
+
+:root,
+[data-theme="ink"] {
+  /* --- Cor: paleta "papel de decalque" --- */
+  --color-ink: #0d0c0a;          /* fundo principal */
+  --color-surface: #17140f;      /* cards, painéis */
+  --color-surface-2: #1e1a13;    /* hover de cards */
+  --color-paper: #ece4d3;        /* texto principal */
+  --color-paper-dim: #b8af9b;    /* texto secundário */
+  --color-violet: #8b79ac;       /* mensagens do cliente — tinta de decalque */
+  --color-violet-dim: #5c4f76;
+  --color-brass: #b4924c;        /* ação primária, destaque */
+  --color-brass-hover: #c6a25a;
+  --color-blood: #8b3040;        /* alerta, urgência — usar com moderação */
+  --color-border: rgba(236, 228, 211, 0.12);
+
+  /* --- Tipografia --- */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14.5px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-2xl: clamp(28px, 4vw, 38px);
+
+  /* --- Espaçamento (escala base 4px) --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* --- Raio e bordas --- */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+}
+
+/* Tema alternativo, reservado para quando o estúdio (ou um cliente
+   futuro do SaaS) quiser uma identidade clara em vez de escura.
+   Só precisa preencher os valores — nenhum componente muda. */
+[data-theme="light"] {
+  --color-ink: #f4f1ea;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0ece2;
+  --color-paper: #17140f;
+  --color-paper-dim: #6b6355;
+  --color-violet: #6e5a8c;
+  --color-violet-dim: #a89bc2;
+  --color-brass: #9c7a35;
+  --color-brass-hover: #b4924c;
+  --color-blood: #8b3040;
+  --color-border: rgba(23, 20, 15, 0.12);
+}
