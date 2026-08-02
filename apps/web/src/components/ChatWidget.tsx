@@ -36,9 +36,10 @@ function fileToBase64(file: File): Promise<{ base64: string; mediaType: string }
 
 interface ChatWidgetProps {
   onProfileUpdate?: (profile: any) => void;
+  onLeadIdUpdate?: (leadId: string) => void;
 }
 
-export default function ChatWidget({ onProfileUpdate }: ChatWidgetProps) {
+export default function ChatWidget({ onProfileUpdate, onLeadIdUpdate }: ChatWidgetProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { autor: "ia", conteudo: "Oi. vamos iniciar seu atendimento", isFirstInGroup: true },
   ]);
@@ -103,6 +104,7 @@ export default function ChatWidget({ onProfileUpdate }: ChatWidgetProps) {
       // Reporta o profile atualizado pro painel ao vivo (App.tsx),
       // independente da divisão da resposta em múltiplas bolhas abaixo.
       onProfileUpdate?.(data.profile);
+      onLeadIdUpdate?.(data.leadId);
 
       const blocosDeTexto = (data.reply as string)
         .split(/\n\n+/)

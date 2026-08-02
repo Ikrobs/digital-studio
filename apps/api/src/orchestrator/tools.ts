@@ -14,6 +14,10 @@ export const updateLeadProfileTool: Anthropic.Tool = {
         type: "string",
         description: "Como a pessoa quer ser chamada (primeiro nome ou apelido).",
       },
+      endereco: {
+        type: "string",
+        description: "Endereço do cliente, se mencionado espontaneamente. Não perguntar proativamente no chat casual.",
+      },
       ideia: {
         type: "string",
         description: "O que o cliente quer tatuar ou o significado da peça.",

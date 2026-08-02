@@ -21,6 +21,7 @@ const updateLeadProfileFunction: OpenAI.Chat.Completions.ChatCompletionTool = {
       type: "object",
       properties: {
         nome: { type: "string" },
+        endereco: { type: "string" },
         ideia: { type: "string" },
         localCorpo: { type: "string" },
         tamanho: { type: "string" },
@@ -92,52 +93,43 @@ export class OpenAICompatibleProvider implements LLMProvider {
         ),
       };
     } catch {
+      // Modelo aberto pode falhar em imagem, JSON malformado, etc.
+      // Falha graciosamente — mantém o perfil como estava.
       return currentProfile;
     }
   }
 
   async generateReply(history: HistoryTurn[], profile: LeadProfile): Promise<GenerateReplyResult> {
     const faltando = camposFaltantes(profile);
-    
-    // CORREÇÃO 1: Contexto injetado como diretriz de sistema interna, 
-    // garantindo que o modelo nunca pense que isso foi digitado pelo cliente.
-    const contextSystemPrompt = 
-      `Você deve agir de acordo com o seguinte estado interno do sistema:\n` +
-      `lead_profile atual do banco de dados: ${JSON.stringify(profile)}\n` +
-      `camposFaltantes do fluxo que você deve coletar: ${JSON.stringify(faltando)}\n` +
-      `LEMBRETE: Use as informações acima apenas para guiar sua próxima pergunta. Nunca repita perguntas de campos já preenchidos.`;
+    const contextBlock =
+      `[CONTEXTO INTERNO — não mostrar ao cliente]\n` +
+      `lead_profile atual: ${JSON.stringify(profile)}\n` +
+      `camposFaltantes: ${JSON.stringify(faltando)}\n` +
+      `[FIM DO CONTEXTO]`;
 
     const response = await client.chat.completions.create({
       model: MODEL_FREE,
       messages: [
         { role: "system", content: CONVERSATION_SYSTEM_PROMPT },
-        { role: "system", content: contextSystemPrompt },
         ...history.map((turn) => ({ role: turn.role, content: turn.content })),
+        { role: "user", content: contextBlock },
       ],
       tools: [suggestQuickOptionsFunction],
       tool_choice: "auto",
     });
 
     const message = response.choices[0]?.message;
-    let reply = message?.content ?? "";
-
-    // CORREÇÃO 2: Se o modelo falhar e não gerar conteúdo de texto (comum quando foca 100% na Tool),
-    // definimos uma mensagem amigável de fallback em vez do texto de erro técnico cru.
-    if (!reply.trim()) {
-      reply = "Entendi perfeitamente! Como prefere seguir com esses detalhes?";
-    }
+    const reply =
+      message?.content ?? "Desculpa, tive um problema para responder agora — pode repetir?";
 
     let quickOptions: string[] = [];
     const toolCall = message?.tool_calls?.find((t) => t.function.name === "suggest_quick_options");
-    
     if (toolCall) {
       try {
         const parsed = JSON.parse(toolCall.function.arguments);
-        if (Array.isArray(parsed.opcoes)) {
-          quickOptions = parsed.opcoes;
-        }
+        if (Array.isArray(parsed.opcoes)) quickOptions = parsed.opcoes;
       } catch {
-        // Ignora falhas de parse silenciosamente
+        // opções rápidas são um bônus, não crítico — ignora silenciosamente
       }
     }
 

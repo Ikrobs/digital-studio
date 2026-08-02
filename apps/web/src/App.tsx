@@ -3,6 +3,7 @@ import ChatWidget from "./components/ChatWidget";
 import LeadCard from "./components/LeadCard";
 import LeadProfilePanel, { type LeadProfileView } from "./components/LeadProfilePanel";
 import PlacementTool from "./components/PlacementTool";
+import FichaCompleta from "./components/FichaCompleta";
 import styles from "./App.module.css";
 
 interface Lead {
@@ -25,6 +26,7 @@ export default function App() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [liveProfile, setLiveProfile] = useState<LeadProfileView>({});
+  const [currentLeadId, setCurrentLeadId] = useState<string | undefined>();
 
   async function loadLeads() {
     setLoading(true);
@@ -53,8 +55,9 @@ export default function App() {
 
       <div className={styles.grid}>
         <div>
-          <ChatWidget onProfileUpdate={setLiveProfile} />
+          <ChatWidget onProfileUpdate={setLiveProfile} onLeadIdUpdate={setCurrentLeadId} />
           <LeadProfilePanel profile={liveProfile} />
+          <FichaCompleta leadId={currentLeadId} />
           <PlacementTool />
         </div>
 

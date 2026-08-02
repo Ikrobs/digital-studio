@@ -1,0 +1,177 @@
+.wrapper {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  margin-top: var(--space-4);
+}
+
+.toggleBtn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-paper);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  width: 100%;
+  text-align: left;
+}
+
+.toggleBtn:hover {
+  border-color: var(--color-brass);
+}
+
+.body {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin: 0 0 var(--space-3);
+}
+
+.autoGrid {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.autoRow {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.autoLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  color: var(--color-paper-dim);
+}
+
+.imageGallery {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+.imageGallery img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.formCard {
+  border: 1px solid var(--color-border);
+  border-left: 2px solid var(--color-brass);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+}
+
+.legalText {
+  font-size: var(--text-sm);
+  color: var(--color-paper-dim);
+  line-height: 1.6;
+  margin-bottom: var(--space-3);
+}
+
+.question {
+  margin-bottom: var(--space-3);
+}
+
+.questionLabel {
+  display: block;
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+}
+
+.radioRow {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.radioRow label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.detailInput {
+  width: 100%;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-size: var(--text-sm);
+}
+
+.signatureRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border);
+}
+
+.signatureInput {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-ink);
+  color: var(--color-violet);
+  font-style: italic;
+}
+
+.submitBtn {
+  background: var(--color-brass);
+  color: var(--color-ink);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.submitBtn:hover {
+  background: var(--color-brass-hover);
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.submittedBadge {
+  color: var(--color-brass);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  border: 1px solid var(--color-brass);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  display: inline-block;
+}
+
+.errorMsg {
+  color: var(--color-blood);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2);
+}

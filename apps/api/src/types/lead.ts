@@ -3,6 +3,7 @@
 
 export interface LeadProfile {
   nome?: string | null;
+  endereco?: string | null;
   tipo: "orcamento" | "flash" | "duvida";
   ideia?: string | null;
   localCorpo?: string | null;
