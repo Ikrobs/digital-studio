@@ -15,45 +15,50 @@ export class AnthropicProvider implements LLMProvider {
     currentProfile: LeadProfile,
     image?: ImageInput
   ): Promise<LeadProfile> {
-    const contentBlocks: Anthropic.MessageParam["content"] = [];
+    try {
+      const contentBlocks: Anthropic.MessageParam["content"] = [];
 
-    if (image) {
+      if (image) {
+        contentBlocks.push({
+          type: "image",
+          source: { type: "base64", media_type: image.mediaType as any, data: image.base64 },
+        });
+      }
       contentBlocks.push({
-        type: "image",
-        source: { type: "base64", media_type: image.mediaType as any, data: image.base64 },
+        type: "text",
+        text:
+          `Perfil atual do lead: ${JSON.stringify(currentProfile)}\n\n` +
+          `Mensagem do cliente: "${lastUserMessage}"`,
       });
-    }
-    contentBlocks.push({
-      type: "text",
-      text:
-        `Perfil atual do lead: ${JSON.stringify(currentProfile)}\n\n` +
-        `Mensagem do cliente: "${lastUserMessage}"`,
-    });
 
-    const response = await anthropic.messages.create({
-      model: MODEL_EXTRACTION,
-      max_tokens: 512,
-      system: EXTRACTION_SYSTEM_PROMPT,
-      tools: [updateLeadProfileTool],
-      tool_choice: { type: "auto" },
-      messages: [{ role: "user", content: contentBlocks }],
-    });
+      const response = await anthropic.messages.create({
+        model: MODEL_EXTRACTION,
+        max_tokens: 512,
+        system: EXTRACTION_SYSTEM_PROMPT,
+        tools: [updateLeadProfileTool],
+        tool_choice: { type: "auto" },
+        messages: [{ role: "user", content: contentBlocks }],
+      });
 
-    const toolUse = response.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
-    );
+      const toolUse = response.content.find(
+        (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+      );
 
-    if (!toolUse || toolUse.name !== "update_lead_profile") {
+      if (!toolUse || toolUse.name !== "update_lead_profile") {
+        return currentProfile;
+      }
+
+      const extracted = toolUse.input as Partial<LeadProfile>;
+      return {
+        ...currentProfile,
+        ...Object.fromEntries(
+          Object.entries(extracted).filter(([, v]) => v !== undefined && v !== "")
+        ),
+      };
+    } catch (err) {
+      console.error("Erro na extração (Anthropic, possivelmente imagem malformada):", err);
       return currentProfile;
     }
-
-    const extracted = toolUse.input as Partial<LeadProfile>;
-    return {
-      ...currentProfile,
-      ...Object.fromEntries(
-        Object.entries(extracted).filter(([, v]) => v !== undefined && v !== "")
-      ),
-    };
   }
 
   async generateReply(history: HistoryTurn[], profile: LeadProfile): Promise<GenerateReplyResult> {
@@ -88,9 +93,16 @@ export class AnthropicProvider implements LLMProvider {
       ? ((toolUse!.input as any).opcoes as string[])
       : [];
 
-    return {
-      reply: textBlock?.text ?? "Desculpa, tive um problema para responder agora — pode repetir?",
-      quickOptions,
-    };
+    // Alguns modelos retornam texto vazio quando decidem chamar uma
+    // ferramenta (comportamento normal de function calling, não é erro).
+    // Só usamos a mensagem de "problema real" quando não há nem texto nem
+    // opções — sinal de falha de verdade.
+    const reply =
+      textBlock?.text ||
+      (quickOptions.length > 0
+        ? "Show, só mais um detalhe:"
+        : "Desculpa, tive um problema para responder agora — pode repetir?");
+
+    return { reply, quickOptions };
   }
 }
