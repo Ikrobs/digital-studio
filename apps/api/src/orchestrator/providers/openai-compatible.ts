@@ -121,6 +121,18 @@ export class OpenAICompatibleProvider implements LLMProvider {
 
       const message = response.choices[0]?.message;
 
+      // Diagnóstico: loga a resposta bruta quando não há texto nem tool_call
+      // reconhecível — ajuda a identificar comportamento estranho de modelo
+      // específico sem precisar reproduzir cegamente.
+      if (!message?.content && !message?.tool_calls?.length) {
+        console.warn(
+          "[OpenAICompatibleProvider] Resposta sem texto e sem tool_calls. Modelo:",
+          MODEL_FREE,
+          "Resposta bruta:",
+          JSON.stringify(response, null, 2)
+        );
+      }
+
       let quickOptions: string[] = [];
       const toolCall = message?.tool_calls?.find((t) => t.function.name === "suggest_quick_options");
       if (toolCall) {
