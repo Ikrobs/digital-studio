@@ -49,37 +49,40 @@ export default function App() {
     <div className={styles.page}>
       <h1 className={styles.title}>Estúdio Digital</h1>
       <p className={styles.subtitle}>
-        Chat à esquerda fala com o Orchestrator de verdade e grava no Postgres.
-        Fila de leads à direita reflete o banco em tempo real.
+        Painel de atendimento e gestão de leads em tempo real.
       </p>
 
+      {/* Bloco Superior: Chat e Lista (Preenchimento) Lado a Lado */}
       <div className={styles.grid}>
         <div>
           <ChatWidget onProfileUpdate={setLiveProfile} onLeadIdUpdate={setCurrentLeadId} />
+        </div>
+        <div>
           <LeadProfilePanel profile={liveProfile} />
           <FichaCompleta leadId={currentLeadId} />
           <PlacementTool />
         </div>
+      </div>
 
-        <div className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <h2 className={styles.panelTitle}>Fila de leads</h2>
-            <button className={styles.refreshBtn} onClick={loadLeads}>
-              atualizar
-            </button>
-          </div>
-
-          {loading && <p className={styles.emptyState}>Carregando…</p>}
-          {!loading && leads.length === 0 && (
-            <p className={styles.emptyState}>Nenhum lead ainda — manda uma mensagem no chat.</p>
-          )}
-
-          <ul className={styles.leadList}>
-            {leads.map((lead) => (
-              <LeadCard key={lead.id} lead={lead} onChanged={loadLeads} />
-            ))}
-          </ul>
+      {/* Bloco Inferior: Fila de Leads no Final */}
+      <div className={`${styles.panel} ${styles.fullWidthPanel}`}>
+        <div className={styles.panelHeader}>
+          <h2 className={styles.panelTitle}>Fila de leads</h2>
+          <button className={styles.refreshBtn} onClick={loadLeads}>
+            atualizar
+          </button>
         </div>
+
+        {loading && <p className={styles.emptyState}>Carregando…</p>}
+        {!loading && leads.length === 0 && (
+          <p className={styles.emptyState}>Nenhum lead ainda — manda uma mensagem no chat.</p>
+        )}
+
+        <ul className={styles.leadList}>
+          {leads.map((lead) => (
+            <LeadCard key={lead.id} lead={lead} onChanged={loadLeads} />
+          ))}
+        </ul>
       </div>
     </div>
   );
