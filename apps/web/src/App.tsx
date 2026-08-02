@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import ChatWidget from "./components/ChatWidget";
 import LeadCard from "./components/LeadCard";
+import LeadProfilePanel, { type LeadProfileView } from "./components/LeadProfilePanel";
+import PlacementTool from "./components/PlacementTool";
 import styles from "./App.module.css";
 
 interface Lead {
@@ -22,6 +24,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3333";
 export default function App() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [liveProfile, setLiveProfile] = useState<LeadProfileView>({});
 
   async function loadLeads() {
     setLoading(true);
@@ -49,7 +52,11 @@ export default function App() {
       </p>
 
       <div className={styles.grid}>
-        <ChatWidget />
+        <div>
+          <ChatWidget onProfileUpdate={setLiveProfile} />
+          <LeadProfilePanel profile={liveProfile} />
+          <PlacementTool />
+        </div>
 
         <div className={styles.panel}>
           <div className={styles.panelHeader}>

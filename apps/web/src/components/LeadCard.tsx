@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 // Certifique-se de ajustar o caminho abaixo de acordo com o Passo 2:
-import styles from "../styles/App.module.css"; 
+import styles from "../App.module.css"; 
 
 interface Message {
   id: string;

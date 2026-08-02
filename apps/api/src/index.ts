@@ -2,9 +2,11 @@ import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { whatsappWebhookRoutes } from "./routes/webhook.whatsapp.js";
+// import { evolutionWebhookRoutes } from "./routes/webhook.evolution.js";
 import { leadsRoutes } from "./routes/leads.js";
 import { orchestratorTestRoutes } from "./routes/orchestrator.test.js";
 import { chatRoutes } from "./routes/chat.js";
+import { imagesRoutes } from "./routes/images.js";
 
 const app = Fastify({ logger: true });
 
@@ -15,9 +17,11 @@ await app.register(cors, { origin: true });
 app.get("/health", async () => ({ status: "ok" }));
 
 await app.register(whatsappWebhookRoutes);
+// await app.register(evolutionWebhookRoutes);
 await app.register(leadsRoutes);
 await app.register(orchestratorTestRoutes);
 await app.register(chatRoutes);
+await app.register(imagesRoutes);
 
 const port = Number(process.env.PORT ?? 3333);
 

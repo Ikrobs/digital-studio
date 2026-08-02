@@ -1,0 +1,67 @@
+.panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  margin-top: var(--space-4);
+}
+
+.title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.fieldGrid {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.field {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.fieldEmpty {
+  color: var(--color-paper-dim);
+}
+
+.fieldFilled {
+  border-color: var(--color-brass);
+  background: rgba(180, 146, 76, 0.08);
+  animation: fillIn 0.4s ease;
+}
+
+@keyframes fillIn {
+  from {
+    background: rgba(180, 146, 76, 0.35);
+  }
+  to {
+    background: rgba(180, 146, 76, 0.08);
+  }
+}
+
+.fieldLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-paper-dim);
+}
+
+.fieldValue {
+  font-size: var(--text-sm);
+  text-align: right;
+  max-width: 60%;
+}
+
+.fieldValueEmpty {
+  color: var(--color-paper-dim);
+  font-style: italic;
+}

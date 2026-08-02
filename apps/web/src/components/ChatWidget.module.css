@@ -24,68 +24,35 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Espaço padrão curto entre balões do mesmo grupo */
+  gap: var(--space-3);
   margin-bottom: var(--space-3);
-  padding-right: 4px;
-}
-
-/* Contentores de linha para herdar alinhamento flex */
-.messageRow {
-  display: flex;
-  flex-direction: column;
-  max-width: 80%;
-  width: 100%;
-}
-
-.rowIa {
-  align-self: flex-start;
-}
-
-.rowCliente {
-  align-self: flex-end;
-}
-
-/* Espaçamento maior quando muda o autor da mensagem */
-.newGroup {
-  margin-top: var(--space-3);
 }
 
 .bubble {
   padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  max-width: 80%;
   white-space: pre-wrap;
   font-size: var(--text-base);
   border: 1px solid var(--color-border);
-  width: fit-content;
 }
 
-/* Estilo e bordas arredondadas assimétricas da IA */
 .bubbleIa {
+  align-self: flex-start;
   background: var(--color-ink);
   border-left: 2px solid var(--color-brass);
-  border-radius: 4px var(--radius-sm) var(--radius-sm) 4px;
 }
 
-/* O primeiro balão da IA ganha canto superior arredondado */
-.newGroup .bubbleIa {
-  border-radius: var(--radius-sm) var(--radius-sm) var(--radius-sm) 4px;
-}
-
-/* Estilo e bordas arredondadas assimétricas do cliente */
 .bubbleCliente {
+  align-self: flex-end;
   background: var(--color-surface-2);
   color: var(--color-violet);
   font-style: italic;
-  border-radius: var(--radius-sm) 4px 4px var(--radius-sm);
-}
-
-.newGroup .bubbleCliente {
-  border-radius: var(--radius-sm) var(--radius-sm) 4px var(--radius-sm);
 }
 
 .typing {
   font-size: var(--text-xs);
   color: var(--color-paper-dim);
-  margin-top: var(--space-2);
 }
 
 .inputRow {
@@ -125,8 +92,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  margin-top: var(--space-2);
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 
 .quickChip {
@@ -163,33 +129,53 @@
   border-radius: var(--radius-sm);
   padding: 0 var(--space-3);
   cursor: pointer;
+  font-size: 16px;
 }
 
-.attachBtn:disabled {
-  opacity: 0.5;
-  cursor: default;
+.attachBtn:hover {
+  border-color: var(--color-brass);
 }
 
 .pendingImageRow {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  background: var(--color-surface-2);
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
   margin-bottom: var(--space-2);
-}
-
-.pendingImageLabel {
   font-size: var(--text-xs);
   color: var(--color-paper-dim);
-  flex: 1;
+}
+
+.pendingImageRow .thumb {
+  max-width: 48px;
+  margin-bottom: 0;
 }
 
 .removeImageBtn {
-  background: transparent;
+  background: none;
   border: none;
-  color: #ff4d4d;
+  color: var(--color-blood);
   cursor: pointer;
   font-size: var(--text-xs);
+  text-decoration: underline;
+}
+
+/* Agrupamento visual de mensagens em sequência (efeito "digitando" em
+   múltiplas bolhas) — newGroup dá o respiro maior entre remetentes
+   diferentes; mensagens do mesmo grupo ficam mais coladas. */
+.messageRow {
+  display: flex;
+  flex-direction: column;
+  margin-top: 2px;
+}
+
+.messageRow.newGroup {
+  margin-top: var(--space-3);
+}
+
+.rowCliente {
+  align-items: flex-end;
+}
+
+.rowIa {
+  align-items: flex-start;
 }
